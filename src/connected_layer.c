@@ -49,9 +49,10 @@ matrix forward_connected_layer(layer l, matrix x)
     *l.x = copy_matrix(x);
 
     // TODO: 3.1 - run the network forward
-    matrix y = make_matrix(x.rows, l.w.cols); // Going to want to change this!
+    matrix xw = matmul(*l.x, l.w);
+    matrix y = forward_bias(xw, l.b);
 
-
+    free_matrix(xw);
     return y;
 }
 
@@ -71,9 +72,20 @@ matrix backward_connected_layer(layer l, matrix dy)
     // updates for our weights, which are stored in l.dw
 
     // Calculate dL/dx and return it
-    matrix dx = copy_matrix(x); // Change this
+    matrix db = backward_bias(dy);
+    axpy_matrix(1.0, db, l.db);
+    
+    matrix xt = transpose_matrix(x);
+    matrix dw = matmul(xt, dy);
+    axpy_matrix(1.0, dw, l.dw);
 
+    matrix lwt = transpose_matrix(l.w);
+    matrix dx = matmul(dy, lwt);
 
+    free_matrix(db);
+    free_matrix(xt);
+    free_matrix(dw);
+    free_matrix(lwt);
     return dx;
 }
 
@@ -93,6 +105,11 @@ void update_connected_layer(layer l, float rate, float momentum, float decay)
     // we want it to be (-momentum * update) so we just need to scale it a little
 
     // Do the same for biases as well but no need to use weight decay on biases
+    axpy_matrix(decay, l.w, l.dw);
+    axpy_matrix(-rate, l.dw, l.w);
+    axpy_matrix(-rate, l.db, l.b);
+    scal_matrix(momentum, l.dw);
+    scal_matrix(momentum, l.db);
 }
 
 layer make_connected_layer(int inputs, int outputs)

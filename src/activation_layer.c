@@ -25,6 +25,41 @@ matrix forward_activation_layer(layer l, matrix x)
     // lrelu(x)    = x if x > 0 else .01 * x
     // softmax(x)  = e^{x_i} / sum(e^{x_j}) for all x_j in the same row 
 
+    int i, j;
+    if (a == LOGISTIC) {
+        for (i = 0; i < y.rows; ++i) {
+            for (j = 0; j < y.cols; ++j) {
+                y.data[i * y.cols + j] = 1.0 / (1.0 + exp(-1.0 * y.data[i * y.cols + j]));
+            }
+        }
+    } else if (a == RELU) {
+        for (i = 0; i < y.rows; ++i) {
+            for (j = 0; j < y.cols; ++j) {
+                if (y.data[i * y.cols + j] <= 0.0) {
+                    y.data[i * y.cols + j] = 0.0;
+                }
+            }
+        }
+    } else if (a == LRELU) {
+        for (i = 0; i < y.rows; ++i) {
+            for (j = 0; j < y.cols; ++j) {
+                if (y.data[i * y.cols + j] <= 0.0) {
+                    y.data[i * y.cols + j] *= 0.01;
+                }
+            }
+        }
+    } else if (a == SOFTMAX) {
+        for (i = 0; i < y.rows; ++i) {
+            double denom = 0.0;
+            for (j = 0; j < y.cols; ++j) {
+                denom += exp(y.data[i * y.cols + j]);
+            }
+            for (j = 0; j < y.cols; ++j) {
+                y.data[i * y.cols + j] = exp(y.data[i * y.cols + j]) / denom;
+            }
+        }
+    }
+
     return y;
 }
 
@@ -47,6 +82,22 @@ matrix backward_activation_layer(layer l, matrix dy)
     // d/dx relu(x)     = 1 if x > 0 else 0
     // d/dx lrelu(x)    = 1 if x > 0 else 0.01
     // d/dx softmax(x)  = 1
+    int i, j;
+    for (i = 0; i < dx.rows; ++i) {
+        for (j = 0; j < dx.cols; ++j) {
+            double f_prime = 1.0;
+            double curr_x = x.data[i * x.cols + j];
+            if (a == LOGISTIC) {
+                double log_curr_x = 1.0 / (1.0 + exp(-curr_x));
+                f_prime = log_curr_x * (1.0 - log_curr_x);
+            } else if (a == RELU && curr_x <= 0.0) {
+                f_prime = 0.0;
+            } else if (a == LRELU && curr_x <= 0.0) {
+                f_prime = 0.01;
+            }
+            dx.data[i * dx.cols + j] *= f_prime;
+        }
+    }
 
     return dx;
 }
