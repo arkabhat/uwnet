@@ -41,6 +41,20 @@ matrix backward_convolutional_bias(matrix dy, int n)
     return db;
 }
 
+void localColumnTransform(matrix toChange, image im, int kernelSize, int currRound, int rowStart, int colStart, int c) {
+    int i, j;
+    int channelOff = c * size * size * toChange.cols;
+    int ind = 0
+    for (i = 0; i < kernelSize; i++) {
+        for (j = 0; j < kernelSize; j++) {
+            int row = rowStart + i;
+            int col = colStart + j;
+            toChange.data[ind * toChange.col + currRound + channelOff] = im.data[row * im.w + col];
+            ind ++;
+        }
+    }
+}
+
 // Make a column matrix out of an image
 // image im: image to process
 // int size: kernel size for convolution operation
@@ -57,8 +71,16 @@ matrix im2col(image im, int size, int stride)
 
     // TODO: 5.1
     // Fill in the column matrix with patches from the image
-
-
+    for (i = 0; i < im.c; i += 1) {
+        int currRound = 0;
+        for (j = 0; j < im.h; j += stride) {
+            for (k = 0; k < im.w; k += stride) {
+                localColumnTransform(col, im, size, j, k, i)
+                currRound ++;
+            }
+            
+        }
+    }
 
     return col;
 }
