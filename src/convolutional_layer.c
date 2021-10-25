@@ -41,7 +41,7 @@ matrix backward_convolutional_bias(matrix dy, int n)
     return db;
 }
 
-void localColumnTransform(matrix toChange, image im, int kernelSize, int currRound, int rowStart, int colStart, int c) {
+void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound, int rowStart, int colStart, int c) {
     int i, j;
     int channelOff = c * size * size * toChange.cols;
     int ind = 0
@@ -75,7 +75,7 @@ matrix im2col(image im, int size, int stride)
         int currRound = 0;
         for (j = 0; j < im.h; j += stride) {
             for (k = 0; k < im.w; k += stride) {
-                localColumnTransform(col, im, size, j, k, i)
+                localImageToColumn(col, im, size, j, k, i)
                 currRound ++;
             }
             
@@ -83,6 +83,24 @@ matrix im2col(image im, int size, int stride)
     }
 
     return col;
+}
+
+void localColumnToImage(matrix col, image im, int currRound, int kernelSize, int c, int rowStart, int colStart) {
+    int channelOffset = c * kernelSize * kernelSize * col.cols;
+    int i, j;
+    int index = 0
+    for (i = 0; i < kernelSize; i++) {
+        for (j = 0; j < kernelSize; j++) {
+            int row = rowStart + i;
+            int col = colStart + j;
+            // Index of value to be taken from column matrix
+            int colMatrixIndex = index * col.cols + c + currRound; 
+            // Index of location to store pixel in image
+            int imageIndex = row * im.w + col;
+            im.data[imageIndex] = col.data[colMatrixIndex];
+            index ++;
+        }
+    }
 }
 
 // The reverse of im2col, add elements back into image
