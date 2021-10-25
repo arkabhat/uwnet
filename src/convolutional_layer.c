@@ -43,13 +43,13 @@ matrix backward_convolutional_bias(matrix dy, int n)
 
 void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound, int rowStart, int colStart, int c) {
     int i, j;
-    int channelOff = c * size * size * toChange.cols;
-    int ind = 0
+    int channelOff = c * kernelSize * kernelSize * toChange.cols;
+    int ind = 0;
     for (i = 0; i < kernelSize; i++) {
         for (j = 0; j < kernelSize; j++) {
             int row = rowStart + i;
             int col = colStart + j;
-            toChange.data[ind * toChange.col + currRound + channelOff] = im.data[row * im.w + col];
+            toChange.data[ind * toChange.cols + currRound + channelOff] = im.data[row * im.w + col];
             ind ++;
         }
     }
@@ -75,7 +75,7 @@ matrix im2col(image im, int size, int stride)
         int currRound = 0;
         for (j = 0; j < im.h; j += stride) {
             for (k = 0; k < im.w; k += stride) {
-                localImageToColumn(col, im, size, j, k, i)
+                localImageToColumn(col, im, size, currRound, j, k, i);
                 currRound ++;
             }
             
@@ -85,19 +85,19 @@ matrix im2col(image im, int size, int stride)
     return col;
 }
 
-void localColumnToImage(matrix col, image im, int currRound, int kernelSize, int c, int rowStart, int colStart) {
-    int channelOffset = c * kernelSize * kernelSize * col.cols;
+void localColumnToImage(matrix m, image im, int currRound, int kernelSize, int c, int rowStart, int colStart) {
+    int channelOffset = c * kernelSize * kernelSize * m.cols;
     int i, j;
-    int index = 0
+    int index = 0;
     for (i = 0; i < kernelSize; i++) {
         for (j = 0; j < kernelSize; j++) {
             int row = rowStart + i;
             int col = colStart + j;
             // Index of value to be taken from column matrix
-            int colMatrixIndex = index * col.cols + c + currRound; 
+            int colMatrixIndex = index * m.cols + c + currRound; 
             // Index of location to store pixel in image
             int imageIndex = row * im.w + col;
-            im.data[imageIndex] = col.data[colMatrixIndex];
+            im.data[imageIndex] = m.data[colMatrixIndex];
             index ++;
         }
     }
@@ -118,7 +118,7 @@ image col2im(int width, int height, int channels, matrix col, int size, int stri
 
     // TODO: 5.2
     // Add values into image im from the column matrix
-    
+    // Iterate through image and call localColumnToImage on each index
 
 
     return im;
