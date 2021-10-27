@@ -49,10 +49,15 @@ void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound
         for (j = 0; j < kernelSize; j++) {
             int row = rowStart + i;
             int col = colStart + j;
-            toChange.data[ind * toChange.cols + currRound + channelOff] = im.data[row * im.w + col];
+            // printf("Rowstart = %d Row: %d\nColstart = %d Col: %d\n", rowStart, row, colStart, col);
+            float pixel = get_pixel(im, row, col, c);
+            // printf("Pixel %f\n", pixel);
+            toChange.data[ind * toChange.cols + currRound + channelOff] = pixel;
+            // printf("Column Pixel %f at index %d\n\n", toChange.data[ind * toChange.cols + currRound + channelOff], ind * toChange.cols + currRound + channelOff);
             ind ++;
         }
     }
+    // printf("Finished one convolutional filter application\n");
 }
 
 // Make a column matrix out of an image
@@ -68,7 +73,7 @@ matrix im2col(image im, int size, int stride)
     int rows = im.c*size*size;
     int cols = outw * outh;
     matrix col = make_matrix(rows, cols);
-
+    // printf("Image dimensions in matrix: %d, %d\n", rows, cols);
     // TODO: 5.1
     // Fill in the column matrix with patches from the image
     for (i = 0; i < im.c; i += 1) {
