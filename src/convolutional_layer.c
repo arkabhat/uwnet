@@ -41,7 +41,7 @@ matrix backward_convolutional_bias(matrix dy, int n)
     return db;
 }
 
-void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound, int rowStart, int colStart, int c) {
+void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound, int c, int rowStart, int colStart) {
     int i, j;
     int channelOff = c * kernelSize * kernelSize * toChange.cols;
     int ind = 0;
@@ -75,7 +75,7 @@ matrix im2col(image im, int size, int stride)
         int currRound = 0;
         for (j = 0; j < im.h; j += stride) {
             for (k = 0; k < im.w; k += stride) {
-                localImageToColumn(col, im, size, currRound, j, k, i);
+                localImageToColumn(col, im, size, currRound, i, j, k);
                 currRound ++;
             }
             
@@ -94,7 +94,7 @@ void localColumnToImage(matrix m, image im, int currRound, int kernelSize, int c
             int row = rowStart + i;
             int col = colStart + j;
             // Index of value to be taken from column matrix
-            int colMatrixIndex = index * m.cols + c + currRound; 
+            int colMatrixIndex = index * m.cols + channelOffset + currRound; 
             // Index of location to store pixel in image
             int imageIndex = row * im.w + col;
             im.data[imageIndex] = m.data[colMatrixIndex];
@@ -110,7 +110,7 @@ void localColumnToImage(matrix m, image im, int currRound, int kernelSize, int c
 // image im: image to add elements back into
 image col2im(int width, int height, int channels, matrix col, int size, int stride)
 {
-    int i, j, k;
+    int i, j, k, round;
 
     image im = make_image(width, height, channels);
     int outw = (im.w-1)/stride + 1;
@@ -119,7 +119,15 @@ image col2im(int width, int height, int channels, matrix col, int size, int stri
     // TODO: 5.2
     // Add values into image im from the column matrix
     // Iterate through image and call localColumnToImage on each index
-
+    round = 0;
+    for (i = 0; i < channels; i++) {
+        for (j = 0; j < height; j += stride) {
+            for (k = 0; k < width; k += stride) {
+                localColumnToImage(col, im, round, size, i, j, k);
+                round ++;
+            }
+        }
+    }
 
     return im;
 }
