@@ -21,7 +21,34 @@ matrix forward_maxpool_layer(layer l, matrix in)
     matrix out = make_matrix(in.rows, outw*outh*l.channels);
 
     // TODO: 6.1 - iterate over the input and fill in the output with max values
-
+    int c, i, j, k, m, currConv;
+    for (c = 0; c < l.channels; c++) {
+        int channelOffset = l.width * l.height * c;
+        currConv = 0;
+        for (i = 0; i < l.height; i+= l.stride) {
+            for (j = 0; j < l.width; j+= l.stride) {
+                float max = -10000000;
+                for (k = 0; k < l.size; k++) {
+                    for (m = 0; m < l.size; m++) {
+                        int filter_row = i - (l.size - 1) / 2 + k; // gives corresponding row in matrix
+                        int filter_col = j - (l.size - 1) / 2 + m; // gives corresponding col in matrix
+                        if (filter_row < 0 || filter_col < 0 || filter_row >= in.rows || filter_col >= in.cols) { // padding
+                            if (0.0 > max) {
+                                max = 0.0;
+                            }
+                        } else {
+                            if (in.data[filter_col + in.cols * filter_row + channelOffset] > max) {
+                                max = in.data[filter_col + in.cols * filter_row + channelOffset];
+                            }
+                        }
+                    }
+                }
+                // We have the max for this sizexsize filter region. Store in out
+                out.data[channelOffset + currConv] = max;
+                currConv ++;
+            }
+        }
+    }
 
 
     return out;
