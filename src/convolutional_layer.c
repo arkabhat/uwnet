@@ -57,18 +57,22 @@ matrix im2col(image im, int size, int stride)
 
     // TODO: 5.1
     // Fill in the column matrix with patches from the image
+    
     for (int c = 0; c < im.c; c += 1) {
+
         int curr_pixel = 0;
 
         // iterate over pixels in image
         for (int i = 0; i < im.h; i += stride) {
             for (int j = 0; j < im.w; j += stride) {
+
                 int index = 0;
                 int channel_offset = c * size * size * col.cols;
 
                 // iterate over filter positions
                 for (int k = 0; k < size; k++) {
                     for (int l = 0; l < size; l++) {
+
                         int filter_row = i - (size - 1) / 2 + k; // gives corresponding row in image
                         int filter_col = j - (size - 1) / 2 + l; // gives corresponding col in image
 
@@ -78,35 +82,20 @@ matrix im2col(image im, int size, int stride)
                         } else {
                             pixel = im.data[filter_col + im.w * (filter_row + im.h * c)];
                         }
-
                         col.data[index * col.cols + channel_offset + curr_pixel] = pixel;
+
                         index++;
+
                     }
                 }
+
                 curr_pixel++;
+
             }
         }
     }
 
     return col;
-}
-
-void localColumnToImage(matrix m, image im, int currRound, int kernelSize, int c, int rowStart, int colStart) {
-    int channelOffset = c * kernelSize * kernelSize * m.cols;
-    int i, j;
-    int index = 0;
-    for (i = 0; i < kernelSize; i++) {
-        for (j = 0; j < kernelSize; j++) {
-            int row = rowStart + i;
-            int col = colStart + j;
-            // Index of value to be taken from column matrix
-            int colMatrixIndex = index * m.cols + channelOffset + currRound; 
-            // Index of location to store pixel in image
-            int imageIndex = row * im.w + col;
-            im.data[imageIndex] = m.data[colMatrixIndex];
-            index ++;
-        }
-    }
 }
 
 // The reverse of im2col, add elements back into image
@@ -123,11 +112,34 @@ image col2im(int width, int height, int channels, matrix col, int size, int stri
 
     // TODO: 5.2
     // Add values into image im from the column matrix
-    // Iterate through image and call localColumnToImage on each index
+
     for (int c = 0; c < channels; c++) {
+
         int curr_pixel = 0;
+
         for (int i = 0; i < height; i += stride) {
             for (int j = 0; j < width; j += stride) {
+
+                int index = 0;
+                int channel_offset = c * size * size * col.cols;
+
+                // iterate over filter positions
+                for (int k = 0; k < size; k++) {
+                    for (int l = 0; l < size; l++) {
+
+                        int filter_row = i - (size - 1) / 2 + k; // gives corresponding row in image
+                        int filter_col = j - (size - 1) / 2 + l; // gives corresponding col in image
+
+                        if (filter_row >= 0 && filter_col >= 0 && filter_row < im.h && filter_col < im.w) { // only valid positions
+                            float pixel = col.data[index * col.cols + channel_offset + curr_pixel];
+                            im.data[filter_col + im.w * (filter_row + im.h * c)] += pixel;
+                        }
+
+                        index++;
+
+                    }
+                }
+
                 curr_pixel++;
             }
         }
