@@ -41,25 +41,6 @@ matrix backward_convolutional_bias(matrix dy, int n)
     return db;
 }
 
-void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound, int c, int rowStart, int colStart) {
-    int i, j;
-    int channelOff = c * kernelSize * kernelSize * toChange.cols;
-    int ind = 0;
-    for (i = 0; i < kernelSize; i++) {
-        for (j = 0; j < kernelSize; j++) {
-            int row = rowStart + i;
-            int col = colStart + j;
-            // printf("Rowstart = %d Row: %d\nColstart = %d Col: %d\n", rowStart, row, colStart, col);
-            float pixel = get_pixel(im, row, col, c);
-            // printf("Pixel %f\n", pixel);
-            toChange.data[ind * toChange.cols + currRound + channelOff] = pixel;
-            // printf("Column Pixel %f at index %d\n\n", toChange.data[ind * toChange.cols + currRound + channelOff], ind * toChange.cols + currRound + channelOff);
-            ind ++;
-        }
-    }
-    // printf("Finished one convolutional filter application\n");
-}
-
 // Make a column matrix out of an image
 // image im: image to process
 // int size: kernel size for convolution operation
@@ -67,23 +48,43 @@ void localImageToColumn(matrix toChange, image im, int kernelSize, int currRound
 // returns: column matrix
 matrix im2col(image im, int size, int stride)
 {
-    int i, j, k;
+
     int outw = (im.w-1)/stride + 1;
     int outh = (im.h-1)/stride + 1;
     int rows = im.c*size*size;
     int cols = outw * outh;
     matrix col = make_matrix(rows, cols);
-    // printf("Image dimensions in matrix: %d, %d\n", rows, cols);
+
     // TODO: 5.1
     // Fill in the column matrix with patches from the image
-    for (i = 0; i < im.c; i += 1) {
-        int currRound = 0;
-        for (j = 0; j < im.h; j += stride) {
-            for (k = 0; k < im.w; k += stride) {
-                localImageToColumn(col, im, size, currRound, i, j, k);
-                currRound ++;
+    for (int c = 0; c < im.c; c += 1) {
+        int curr_pixel = 0;
+
+        // iterate over pixels in image
+        for (int i = 0; i < im.h; i += stride) {
+            for (int j = 0; j < im.w; j += stride) {
+                int index = 0;
+                int channel_offset = c * size * size * col.cols;
+
+                // iterate over filter positions
+                for (int k = 0; k < size; k++) {
+                    for (int l = 0; l < size; l++) {
+                        int filter_row = i - (size - 1) / 2 + k; // gives corresponding row in image
+                        int filter_col = j - (size - 1) / 2 + l; // gives corresponding col in image
+
+                        float pixel;
+                        if (filter_row < 0 || filter_col < 0 || filter_row >= im.h || filter_col >= im.w) { // padding
+                            pixel = 0.0;
+                        } else {
+                            pixel = im.data[filter_col + im.w * (filter_row + im.h * c)];
+                        }
+
+                        col.data[index * col.cols + channel_offset + curr_pixel] = pixel;
+                        index++;
+                    }
+                }
+                curr_pixel++;
             }
-            
         }
     }
 
@@ -115,7 +116,6 @@ void localColumnToImage(matrix m, image im, int currRound, int kernelSize, int c
 // image im: image to add elements back into
 image col2im(int width, int height, int channels, matrix col, int size, int stride)
 {
-    int i, j, k, round;
 
     image im = make_image(width, height, channels);
     int outw = (im.w-1)/stride + 1;
@@ -124,12 +124,11 @@ image col2im(int width, int height, int channels, matrix col, int size, int stri
     // TODO: 5.2
     // Add values into image im from the column matrix
     // Iterate through image and call localColumnToImage on each index
-    round = 0;
-    for (i = 0; i < channels; i++) {
-        for (j = 0; j < height; j += stride) {
-            for (k = 0; k < width; k += stride) {
-                localColumnToImage(col, im, round, size, i, j, k);
-                round ++;
+    for (int c = 0; c < channels; c++) {
+        int curr_pixel = 0;
+        for (int i = 0; i < height; i += stride) {
+            for (int j = 0; j < width; j += stride) {
+                curr_pixel++;
             }
         }
     }
