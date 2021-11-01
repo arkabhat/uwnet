@@ -85,8 +85,70 @@ matrix backward_maxpool_layer(layer l, matrix dy)
     // corresponding delta with the delta from the output. This should be
     // similar to the forward method in structure.
 
+    // Each row in dy -> error for one image from input in
+    // For each row in dy, we want to populate dx with the equivalent of an image
+    // So, i.e. in[1] <- in[i] + dy[1] where we apply dy[1] to only the max val in 
+    // every pooling filter region
+    int c, i, j, k, m, currConv;
+    int im;
+    for (im = 0; im < in.rows; im++) {
 
+        // Get image from data of previous layer
+        matrix prevImage = make_matrix(l.height * l.channels, l.width);
+        // Array pointer arithmetic means the below works for assigning data to currImage
+        prevImage.data = in.data + im * in.cols;
+        // Create dy Matrix for current image
+        matrix currDelta = make_matrix(l.channels * outh, outw);
+        // Assign currDelta correctly with pointer arithmetic
+        currDelta.data = dy.data + im * dy.cols;
 
+        // Create matrix pointing to dx
+        matrix out = make_matrix(l.height * l.channels, l.width);
+        // Assign to proper location of dx
+        out.data = dx.data + im * dx.cols;
+        
+        // We now have a single image from the dataset, lets pool for it.
+        for (c = 0; c < l.channels; c++) {
+            // Channel offset for delta image
+            int channelOffsetDelta = outw * outh * c;
+            // Channel offset for previous image
+            int channelOffsetPrev = l.width * l.height * c;
+
+            currConv = 0;
+            
+            for (i = 0; i < l.height; i += l.stride) {
+                for (j = 0; j < l.width; j += l.stride) {
+                    float max = 0.0;
+                    int mx = i;
+                    int my = j;
+                    for (k = 0; k < l.size; k++) {
+                        for (m = 0; m < l.size; m++) {
+                            int filter_row = i - (l.size - 1) / 2 + k; // gives corresponding row in matrix
+                            int filter_col = j - (l.size - 1) / 2 + m; // gives corresponding col in matrix
+                            if (filter_row < 0 || filter_col < 0 || filter_row >= prevImage.rows || filter_col >= prevImage.cols) { // padding
+                                if (0.0 > max) {
+                                    // printf("Considering paddingn\n");
+                                    max = 0.0;
+                                    mx = 0;
+                                    my = 0;
+                                }
+                            } else {
+                                if (prevImage.data[filter_col + prevImage.cols * filter_row + channelOffsetPrev] > max) {
+                                    max = prevImage.data[filter_col + prevImage.cols * filter_row + channelOffsetPrev];
+                                    mx = filter_row;
+                                    my = filter_col;
+                                    // printf("Considering actual valuen\n");
+                                }
+                            }
+                        }
+                    }
+                    // We have the max for this sizexsize filter region and its related delta, update prevImage
+                    out.data[mx * out.cols + my + channelOffsetPrev] = currDelta.data[channelOffsetDelta + currConv];
+                    currConv ++;
+                }
+            }
+        }
+    }
     return dx;
 }
 
