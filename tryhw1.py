@@ -45,3 +45,6 @@ print("test accuracy:     %f", accuracy_net(m, test))
 # Your answer:
 #
 
+# Convlutional net:
+# training accuracy: %f 0.7101399898529053
+# test accuracy:     %f 0.6617000102996826
