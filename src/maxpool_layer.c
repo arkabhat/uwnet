@@ -21,48 +21,50 @@ matrix forward_maxpool_layer(layer l, matrix in)
     matrix out = make_matrix(in.rows, outw*outh*l.channels);
 
     // TODO: 6.1 - iterate over the input and fill in the output with max values
-    int c, i, j, k, m, currConv;
-    int im;
-    for (im = 0; im < in.rows; im++) {
+    for (int im = 0; im < in.rows; im++) {
         // Get image from current row
-        matrix currImage = make_matrix(l.height * l.channels, l.width);
+        matrix currImage;
+        currImage.rows = l.height * l.channels;
+        currImage.cols = l.width;
         // Array pointer arithmetic means the below works for assigning data to currImage
         currImage.data = in.data + im * in.cols;
+
         // Create output matrix
-        matrix pooledImage = make_matrix(l.channels * outh, outw);
+        matrix pooledImage;
+        pooledImage.rows = outh * l.channels;
+        pooledImage.cols = outw;
         // Assign pooledImage to point to appropriate place in output
         pooledImage.data = out.data + im * out.cols;
 
         // We now have a single image from the dataset, lets pool for it.
-        for (c = 0; c < l.channels; c++) {
+        for (int c = 0; c < l.channels; c++) {
             // Channel offset for pooled image
             int channelOffsetPooled = outw * outh * c;
+
             // Channel offset for original image
             int channelOffsetOriginal = l.width * l.height * c;
-            currConv = 0;
-            for (i = 0; i < l.height; i += l.stride) {
-                for (j = 0; j < l.width; j += l.stride) {
-                    float max = 0.0;
-                    for (k = 0; k < l.size; k++) {
-                        for (m = 0; m < l.size; m++) {
+
+            // counter for position
+            int currConv = 0;
+
+            for (int i = 0; i < l.height; i += l.stride) {
+                for (int j = 0; j < l.width; j += l.stride) {
+                    float max = -FLT_MAX;
+                    for (int k = 0; k < l.size; k++) {
+                        for (int m = 0; m < l.size; m++) {
                             int filter_row = i - (l.size - 1) / 2 + k; // gives corresponding row in matrix
                             int filter_col = j - (l.size - 1) / 2 + m; // gives corresponding col in matrix
-                            if (filter_row < 0 || filter_col < 0 || filter_row >= currImage.rows || filter_col >= currImage.cols) { // padding
-                                if (0.0 > max) {
-                                    // printf("Considering paddingn\n");
-                                    max = 0.0;
-                                }
-                            } else {
+                            if (filter_row >= 0 && filter_col >= 0 && filter_row < currImage.rows && filter_col < currImage.cols) { // only valid positions
                                 if (currImage.data[filter_col + currImage.cols * filter_row + channelOffsetOriginal] > max) {
                                     max = currImage.data[filter_col + currImage.cols * filter_row + channelOffsetOriginal];
-                                    // printf("Considering actual valuen\n");
                                 }
                             }
                         }
                     }
+                    
                     // We have the max for this sizexsize filter region. Store in out
                     pooledImage.data[channelOffsetPooled + currConv] = max;
-                    currConv ++;
+                    currConv++;
                 }
             }
         }
@@ -89,62 +91,62 @@ matrix backward_maxpool_layer(layer l, matrix dy)
     // For each row in dy, we want to populate dx with the equivalent of an image
     // So, i.e. in[1] <- in[i] + dy[1] where we apply dy[1] to only the max val in 
     // every pooling filter region
-    int c, i, j, k, m, currConv;
-    int im;
-    for (im = 0; im < in.rows; im++) {
+    for (int im = 0; im < in.rows; im++) {
 
         // Get image from data of previous layer
-        matrix prevImage = make_matrix(l.height * l.channels, l.width);
+        matrix prevImage;// = make_matrix(l.height * l.channels, l.width);
+        prevImage.rows = l.height * l.channels;
+        prevImage.cols = l.width;
         // Array pointer arithmetic means the below works for assigning data to currImage
         prevImage.data = in.data + im * in.cols;
+
         // Create dy Matrix for current image
-        matrix currDelta = make_matrix(l.channels * outh, outw);
+        matrix currDelta;// = make_matrix(l.channels * outh, outw);
+        currDelta.rows = outh * l.channels;
+        currDelta.cols = outw;
         // Assign currDelta correctly with pointer arithmetic
         currDelta.data = dy.data + im * dy.cols;
 
         // Create matrix pointing to dx
-        matrix out = make_matrix(l.height * l.channels, l.width);
+        matrix out;// = make_matrix(l.height * l.channels, l.width);
+        out.rows = l.height * l.channels;
+        out.cols = l.width;
         // Assign to proper location of dx
         out.data = dx.data + im * dx.cols;
         
         // We now have a single image from the dataset, lets pool for it.
-        for (c = 0; c < l.channels; c++) {
+        for (int c = 0; c < l.channels; c++) {
             // Channel offset for delta image
             int channelOffsetDelta = outw * outh * c;
+
             // Channel offset for previous image
             int channelOffsetPrev = l.width * l.height * c;
 
-            currConv = 0;
+            // counter for position
+            int currConv = 0;
             
-            for (i = 0; i < l.height; i += l.stride) {
-                for (j = 0; j < l.width; j += l.stride) {
-                    float max = 0.0;
-                    int mx = i;
-                    int my = j;
-                    for (k = 0; k < l.size; k++) {
-                        for (m = 0; m < l.size; m++) {
+            for (int i = 0; i < l.height; i += l.stride) {
+                for (int j = 0; j < l.width; j += l.stride) {
+                    float max = -FLT_MAX;
+                    int m_row = 0;
+                    int m_col = 0;
+
+                    for (int k = 0; k < l.size; k++) {
+                        for (int m = 0; m < l.size; m++) {
                             int filter_row = i - (l.size - 1) / 2 + k; // gives corresponding row in matrix
                             int filter_col = j - (l.size - 1) / 2 + m; // gives corresponding col in matrix
-                            if (filter_row < 0 || filter_col < 0 || filter_row >= prevImage.rows || filter_col >= prevImage.cols) { // padding
-                                if (0.0 > max) {
-                                    // printf("Considering paddingn\n");
-                                    max = 0.0;
-                                    mx = 0;
-                                    my = 0;
-                                }
-                            } else {
+                            if (filter_row >= 0 && filter_col >= 0 && filter_row < prevImage.rows && filter_col < prevImage.cols) { // only valid positions
                                 if (prevImage.data[filter_col + prevImage.cols * filter_row + channelOffsetPrev] > max) {
                                     max = prevImage.data[filter_col + prevImage.cols * filter_row + channelOffsetPrev];
-                                    mx = filter_row;
-                                    my = filter_col;
-                                    // printf("Considering actual valuen\n");
+                                    m_row = filter_row;
+                                    m_col = filter_col;
                                 }
                             }
                         }
                     }
                     // We have the max for this sizexsize filter region and its related delta, update prevImage
-                    out.data[mx * out.cols + my + channelOffsetPrev] = currDelta.data[channelOffsetDelta + currConv];
-                    currConv ++;
+                    out.data[m_row * out.cols + m_col + channelOffsetPrev] += currDelta.data[channelOffsetDelta + currConv];
+                    currConv++;
                 }
             }
         }
