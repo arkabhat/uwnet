@@ -134,7 +134,7 @@ matrix delta_batch_norm(matrix d, matrix dm, matrix dv, matrix m, matrix v, matr
     int i, j;
     for (i = 0; i < d.rows; ++i) {
         for (j = 0; j < d.cols; ++j) {
-            dx.data[i * dx.cols + j] += (d.data[i * d.cols + j] * (1.0 / sqrt(v.data[j / n] + eps))) + (dv.data[j / n] * 2.0 * (x.data[i * x.cols + j] - m.data[j / n]) / (d.rows / n)) + (dm.data[j / n] / (d.rows / n));
+            dx.data[i * dx.cols + j] += (d.data[i * d.cols + j] * (1.0 / sqrt(v.data[j / n] + eps))) + (dv.data[j / n] * 2.0 * (x.data[i * x.cols + j] - m.data[j / n]) / (d.rows * n)) + (dm.data[j / n] / (d.rows * n));
         }
     }
     return dx;
