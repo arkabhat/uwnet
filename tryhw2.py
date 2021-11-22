@@ -103,3 +103,12 @@ print("test accuracy:     %f", accuracy_net(m, test))
 # Learning rate: 0.01
 # training accuracy: %f 0.5558800101280212
 # test accuracy:     %f 0.5419999957084656
+
+# From the above we can see that batch normalization improved the test and training accuracy of 
+# convnet overall significantly. The normalization of elements after convolutional layers likely work 
+# to help better modulate gradient explosions and help better generalize the input data, resulting in an
+# increase in accuracy. Further, we are able to push our learning rates to very small values without 
+# greatly impacting our model's accuracy and convergence, likely due to the fact that no particular neurons 
+# are being drastically impacted by outliers.
+# The model has less fluctuation between epochs in terms of accuracy as well, and seems to converge more easily 
+# and more smoothly, due to the normalization after layers. 
